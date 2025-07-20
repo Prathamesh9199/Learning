@@ -1,0 +1,67 @@
+** Building Autonomous AI Agents with LangGraph - Packt - Coursera **
+
+Index
+    - Module 1
+    - Module 2
+    - Module 3
+    - Module 4
+    - Module 5
+    - Module 6
+
+==========================================================================
+
+Module 1 - Introduction
+
+Resources 
+    - https://github.com/PacktPublishing/Building-Autonomous-AI-Agents-with-LangGraph
+
+==========================================================================
+
+Module 2 - Python Environment setup
+
+Commands
+    - python -m venv .venv      ## to create a virtual Environment
+    - python .\app.py           ## to run a python file
+    - where python              ## to know where the python is installed on the system
+
+==========================================================================
+
+Module 3 - AI Agents Deep Dive - A Full Overview
+
+AI Agents
+    - What?
+        - System who has access to LLM, Environment, Tools
+        - It uses LLM for understanding the context, building a plan to solve a problem, uses the tools to solve the problem, uses the Environment to perform the action of the tools.
+        - Example: System with a Currency Conversion Tool, can use the LLM to know when to use it, use the Currency Conversion Tool within a sandbox Environment to do the conversion and get the answer, once the answer is received we can get back to user with it.
+        - Exmple tools can be: Search the Web, Interact with SQL File, Access the SQL DB
+
+        User Query --> LLM --> Tools --> Environment --> Tool answer --> LLM --> Agent Response
+
+    - Why?
+        - Having LLM is like having knowledge on how to cook a receipe, but without right tools & Environment it's not possible to actually cook something to eat.
+
+Agents Characterstics
+    - Autonomy (minimal human intervention)
+    - Learning & adaption (via machine learning)
+    - Interaction (with humans, systems via NLP, APIs)
+    - Goal driven
+
+Use Cases
+    - Customer service chatbots
+    - Personal assistance
+    - Data analysis
+    - Smart home system
+
+==========================================================================
+
+Module 4
+
+==========================================================================
+
+Module 5
+
+==========================================================================
+
+Module 6
+
+==========================================================================
