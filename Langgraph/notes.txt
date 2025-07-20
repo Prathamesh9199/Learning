@@ -46,7 +46,7 @@ Agents Characterstics
     - Interaction (with humans, systems via NLP, APIs)
     - Goal driven
 
-Use Cases
+Use Cases:
     - Customer service chatbots
     - Personal assistance
     - Data analysis
