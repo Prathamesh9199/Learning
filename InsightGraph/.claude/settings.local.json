@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv venv --help:*)",
+      "Bash(uv venv:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv pip show:*)",
+      "Bash(uv run:*)",
+      "Bash(start http://localhost:7860)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
