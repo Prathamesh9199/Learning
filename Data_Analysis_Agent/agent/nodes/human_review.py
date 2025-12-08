@@ -2,25 +2,30 @@ from agent.state import AgentState
 
 def human_review_node(state: AgentState) -> dict:
     """
-    This node doesn't 'do' much work itself. 
-    It acts as a boundary marker where we trigger the 'interrupt_before'.
-    When the graph resumes, it will pass through here (or we can update state directly).
+    Acts as a breakpoint. It displays the generated SQL Plan 
+    and pauses the graph so the user can Approve or Reject.
     """
     print("\n🟡 Node: Human Review")
     
-    plan = state.get("plan")
+    # We only care about the SQL plan here
+    plan = state.get("sql_plan")
+    
     if not plan:
-        return {"error": "No plan found to review."}
+        print("   ⚠️ No SQL Plan found to review.")
+        return {"status": "failed", "error": "Missing SQL Plan"}
 
-    # In a real app, this print statement is replaced by sending data to the UI.
-    print(f"\n📋 Proposed Plan: {plan.final_objective}")
+    print(f"\n📋 Proposed SQL Plan: {plan.final_objective}")
     for step in plan.steps:
-        print(f"   {step.step_id}. {step.description}")
-        print(f"      -> Tool: {step.tool_name}")
-        print(f"      -> Args: {step.tool_arguments}")
+        print(f"   Step {step.step_id}: {step.tool}")
+        print(f"      Description: {step.description}")
+        print(f"      Args: {step.args}")
     
-    print("\n⏸️  Waiting for User Approval...")
-    
-    # We don't change state here. The Graph will pause *after* this node runs 
-    # (if configured with interrupt_after) or *before* the executor.
-    return {}
+    print("\n⏸️  WAITING FOR USER APPROVAL...")
+    print("    (Type 'yes' to proceed, or explain what to fix)")
+
+    # We do NOT return a status of 'executing' here. 
+    # We return 'waiting_approval' which is just a marker.
+    # The actual PAUSE happens because we will configure 'interrupt_after' in graph.py
+    return {
+        "status": "waiting_approval"
+    }

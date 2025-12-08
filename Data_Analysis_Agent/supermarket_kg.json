@@ -1,0 +1,166 @@
+{
+    "nodes": [
+        {
+            "id": "Supermarket"
+        },
+        {
+            "id": "Branch"
+        },
+        {
+            "id": "City"
+        },
+        {
+            "id": "Customer"
+        },
+        {
+            "id": "CustomerType"
+        },
+        {
+            "id": "Gender"
+        },
+        {
+            "id": "Sale"
+        },
+        {
+            "id": "Invoice"
+        },
+        {
+            "id": "TimeDimension"
+        },
+        {
+            "id": "Product"
+        },
+        {
+            "id": "ProductLine"
+        },
+        {
+            "id": "PaymentMethod"
+        },
+        {
+            "id": "FinancialMetric"
+        },
+        {
+            "id": "UnitPrice"
+        },
+        {
+            "id": "Quantity"
+        },
+        {
+            "id": "Tax"
+        },
+        {
+            "id": "TotalAmount"
+        },
+        {
+            "id": "COGS"
+        },
+        {
+            "id": "GrossIncome"
+        },
+        {
+            "id": "Rating"
+        }
+    ],
+    "links": [
+        {
+            "source": "Supermarket",
+            "target": "Branch",
+            "relationship": "OPERATES"
+        },
+        {
+            "source": "Branch",
+            "target": "City",
+            "relationship": "LOCATED_IN"
+        },
+        {
+            "source": "Customer",
+            "target": "Branch",
+            "relationship": "VISITS"
+        },
+        {
+            "source": "Customer",
+            "target": "CustomerType",
+            "relationship": "HAS_STATUS"
+        },
+        {
+            "source": "Customer",
+            "target": "Gender",
+            "relationship": "IDENTIFIES_AS"
+        },
+        {
+            "source": "Customer",
+            "target": "Sale",
+            "relationship": "INITIATES"
+        },
+        {
+            "source": "Sale",
+            "target": "Branch",
+            "relationship": "OCCURS_AT"
+        },
+        {
+            "source": "Sale",
+            "target": "Invoice",
+            "relationship": "GENERATES"
+        },
+        {
+            "source": "Sale",
+            "target": "TimeDimension",
+            "relationship": "RECORDED_AT"
+        },
+        {
+            "source": "Sale",
+            "target": "Product",
+            "relationship": "CONTAINS"
+        },
+        {
+            "source": "Sale",
+            "target": "Quantity",
+            "relationship": "HAS_VOLUME"
+        },
+        {
+            "source": "Sale",
+            "target": "PaymentMethod",
+            "relationship": "PAID_VIA"
+        },
+        {
+            "source": "Sale",
+            "target": "TotalAmount",
+            "relationship": "RESULTS_IN"
+        },
+        {
+            "source": "Sale",
+            "target": "Tax",
+            "relationship": "INCURS"
+        },
+        {
+            "source": "Sale",
+            "target": "COGS",
+            "relationship": "COSTS"
+        },
+        {
+            "source": "Sale",
+            "target": "GrossIncome",
+            "relationship": "YIELDS"
+        },
+        {
+            "source": "Sale",
+            "target": "Rating",
+            "relationship": "RATED_BY"
+        },
+        {
+            "source": "Product",
+            "target": "ProductLine",
+            "relationship": "BELONGS_TO"
+        },
+        {
+            "source": "Product",
+            "target": "UnitPrice",
+            "relationship": "HAS_PRICE"
+        },
+        {
+            "source": "Rating",
+            "target": "Branch",
+            "relationship": "EVALUATES_PERFORMANCE_OF"
+        }
+    ]
+}

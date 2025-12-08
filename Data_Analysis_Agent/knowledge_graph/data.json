@@ -1,0 +1,36 @@
+{
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+        {"id": "Supermarket"}, {"id": "Branch"}, {"id": "City"}, 
+        {"id": "Customer"}, {"id": "CustomerType"}, {"id": "Gender"}, 
+        {"id": "Sale"}, {"id": "Invoice"}, {"id": "TimeDimension"}, 
+        {"id": "Product"}, {"id": "ProductLine"}, {"id": "PaymentMethod"}, 
+        {"id": "FinancialMetric"}, {"id": "UnitPrice"}, {"id": "Quantity"}, 
+        {"id": "Tax"}, {"id": "TotalAmount"}, {"id": "COGS"}, 
+        {"id": "GrossIncome"}, {"id": "Rating"}
+    ],
+    "links": [
+        {"relationship": "OPERATES", "source": "Supermarket", "target": "Branch"},
+        {"relationship": "LOCATED_IN", "source": "Branch", "target": "City"},
+        {"relationship": "VISITS", "source": "Customer", "target": "Branch"},
+        {"relationship": "HAS_STATUS", "source": "Customer", "target": "CustomerType"},
+        {"relationship": "IDENTIFIES_AS", "source": "Customer", "target": "Gender"},
+        {"relationship": "INITIATES", "source": "Customer", "target": "Sale"},
+        {"relationship": "OCCURS_AT", "source": "Sale", "target": "Branch"},
+        {"relationship": "GENERATES", "source": "Sale", "target": "Invoice"},
+        {"relationship": "RECORDED_AT", "source": "Sale", "target": "TimeDimension"},
+        {"relationship": "CONTAINS", "source": "Sale", "target": "Product"},
+        {"relationship": "BELONGS_TO", "source": "Product", "target": "ProductLine"},
+        {"relationship": "HAS_PRICE", "source": "Product", "target": "UnitPrice"},
+        {"relationship": "HAS_VOLUME", "source": "Sale", "target": "Quantity"},
+        {"relationship": "PAID_VIA", "source": "Sale", "target": "PaymentMethod"},
+        {"relationship": "RESULTS_IN", "source": "Sale", "target": "TotalAmount"},
+        {"relationship": "INCURS", "source": "Sale", "target": "Tax"},
+        {"relationship": "COSTS", "source": "Sale", "target": "COGS"},
+        {"relationship": "YIELDS", "source": "Sale", "target": "GrossIncome"},
+        {"relationship": "RATED_BY", "source": "Sale", "target": "Rating"},
+        {"relationship": "EVALUATES_PERFORMANCE_OF", "source": "Rating", "target": "Branch"}
+    ]
+}

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supermarket KG Editor</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f4f4f9; overflow: hidden; }
+        #container { width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+        header { background: #2c3e50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 10; }
+        h1 { margin: 0; font-size: 1.2rem; }
+        
+        /* Upload Button Styles */
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; }
+        .btn { border: 1px solid #ecf0f1; color: #ecf0f1; background-color: transparent; padding: 8px 20px; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn:hover { background: #ecf0f1; color: #2c3e50; }
+        .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+        
+        #stats { font-size: 0.9rem; color: #bdc3c7; margin-left: 20px;}
+        
+        svg { flex-grow: 1; width: 100%; height: 100%; cursor: grab; background: #fff; }
+        svg:active { cursor: grabbing; }
+        
+        /* Graph Styles */
+        .node circle { stroke: #fff; stroke-width: 2px; transition: all 0.3s; }
+        .node text { font-size: 12px; pointer-events: none; text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff; }
+        .link { stroke: #999; stroke-opacity: 0.6; stroke-width: 1.5px; }
+        /* New Version: Always Visible */
+.link-label { 
+    font-size: 10px; 
+    fill: #333; 
+    font-weight: bold;
+    pointer-events: none; 
+    opacity: 1;  /* Visible by default */
+    text-shadow: 
+        -1px -1px 0 #fff,  
+        1px -1px 0 #fff,
+        -1px 1px 0 #fff,
+        1px 1px 0 #fff; /* Adds a white outline so text is readable over lines */
+}
+        .link:hover + .link-label, .link-label:hover { opacity: 1; font-weight: bold; fill: #d35400; }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <header>
+        <div style="display:flex; align-items:center;">
+            <h1>KG Editor</h1>
+            <div id="stats">Waiting for file...</div>
+        </div>
+        
+        <div class="upload-btn-wrapper">
+            <button class="btn">📂 Load JSON File</button>
+            <input type="file" id="json-upload" accept=".json" />
+        </div>
+    </header>
+    <div id="graph-area"></div>
+</div>
+
+<script>
+    // 1. Setup SVG Canvas
+    const width = window.innerWidth;
+    const height = window.innerHeight - 70;
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+    const svg = d3.select("#graph-area").append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .call(d3.zoom().on("zoom", (event) => g.attr("transform", event.transform)));
+
+    const g = svg.append("g");
+
+    // Arrowhead marker
+    svg.append('defs').append('marker')
+        .attr('id', 'arrowhead')
+        .attr('viewBox', '-0 -5 10 10')
+        .attr('refX', 18)
+        .attr('refY', 0)
+        .attr('orient', 'auto')
+        .attr('markerWidth', 6)
+        .attr('markerHeight', 6)
+        .append('path')
+        .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+        .attr('fill', '#999')
+        .style('stroke', 'none');
+
+    // 2. Handle File Upload
+    document.getElementById('json-upload').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const graphData = JSON.parse(e.target.result);
+                renderGraph(graphData);
+            } catch (error) {
+                alert("Error parsing JSON: " + error);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    // 3. Render Logic
+    function renderGraph(graph) {
+        // Clear previous graph if any
+        g.selectAll("*").remove();
+
+        document.getElementById('stats').innerText = `Nodes: ${graph.nodes.length} | Edges: ${graph.links.length}`;
+
+        const simulation = d3.forceSimulation(graph.nodes)
+            .force("link", d3.forceLink(graph.links).id(d => d.id).distance(150))
+            .force("charge", d3.forceManyBody().strength(-400))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collide", d3.forceCollide().radius(30));
+
+        const linkGroup = g.append("g").attr("class", "links");
+        
+        const link = linkGroup.selectAll("path")
+            .data(graph.links)
+            .enter().append("path")
+            .attr("class", "link")
+            .attr('marker-end', 'url(#arrowhead)')
+            .on("mouseover", function() { d3.select(this).style("stroke", "#d35400").style("stroke-width", "3px"); })
+            .on("mouseout", function() { d3.select(this).style("stroke", "#999").style("stroke-width", "1.5px"); });
+
+        const linkLabel = linkGroup.selectAll("text")
+            .data(graph.links)
+            .enter().append("text")
+            .attr("class", "link-label")
+            .attr("dy", -5)
+            .attr("text-anchor", "middle")
+            .text(d => d.relationship);
+
+        const node = g.append("g")
+            .attr("class", "nodes")
+            .selectAll("g")
+            .data(graph.nodes)
+            .enter().append("g")
+            .attr("class", "node")
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        node.append("circle")
+            .attr("r", 10)
+            .attr("fill", d => color(d.id));
+
+        node.append("text")
+            .attr("x", 12)
+            .attr("y", 3)
+            .text(d => d.id);
+
+        simulation.on("tick", () => {
+            link.attr("d", d => `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`);
+            linkLabel.attr("x", d => (d.source.x + d.target.x) / 2).attr("y", d => (d.source.y + d.target.y) / 2);
+            node.attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x; d.fy = d.y;
+        }
+        function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null; d.fy = null;
+        }
+    }
+</script>
+</body>
+</html>

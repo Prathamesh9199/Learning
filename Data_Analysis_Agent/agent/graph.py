@@ -1,106 +1,124 @@
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
-
+from langgraph.checkpoint.memory import MemorySaver # <--- 1. Import this
 from agent.state import AgentState
-from agent.nodes.planner import planner_node
-from agent.nodes.human_review import human_review_node
-from agent.nodes.executor import executor_node
-from agent.nodes.error_handler import error_handler_node
-from agent.nodes.responder import responder_node
 
-# --- CONDITIONAL ROUTERS ---
+# --- Import Phase 1 Nodes (Right Brain) ---
+from agent.nodes.kg_planner import kg_planning_node
+from agent.nodes.kg_executor import kg_execution_node
+from agent.nodes.context_refiner import context_refining_node
+from agent.nodes.human_review import human_review_node # <--- Import this
+# --- Import Phase 2 Nodes (Left Brain) ---
+from agent.nodes.sql_planner import sql_planning_node 
+from agent.nodes.sql_executor import sql_execution_node
+from agent.nodes.responder import responder_node 
 
-def route_after_review(state: AgentState):
-    """Decides next step after Human Review"""
-    # If user provided feedback during the interrupt, we assume rejection/refinement
-    if state.get("user_feedback"):
-        return "planner"
-    return "executor"
+# --- 1. Define Conditional Logic ---
 
-def route_executor(state: AgentState):
-    """Decides next step after an Execution attempt"""
-    status = state.get("status")
-    
-    if status == "failed":
-        return "error_handler"
-    elif status == "done":
+def route_kg_execution(state: AgentState):
+    """
+    Decides: 
+    - Are we still executing steps? -> Go back to 'kg_executor'
+    - Are we done? -> Go to 'context_refiner'
+    """
+    if state['status'] == 'ready_to_summarize':
+        return "context_refiner"
+    return "kg_executor"
+
+def route_sql_execution(state: AgentState):
+    """
+    Decides:
+    - Are we still executing SQL? -> Go back to 'sql_executor'
+    - Are we done? -> Go to 'responder'
+    """
+    if state['status'] == 'done':
         return "responder"
-    else:
-        # Loop back to executor for the next step
-        return "executor"
+    # If failed or still executing steps
+    return "sql_executor"
 
-def route_error(state: AgentState):
-    """Decides next step after Error Handler"""
-    status = state.get("status")
+def route_human_review(state: AgentState):
+    """
+    After the human review interrupt, we check the user's input.
+    - If user provided feedback (string), we go back to Planner.
+    - If user approved (or no feedback), we go to Executor.
+    """
+    feedback = state.get("user_feedback")
     
-    if status == "waiting_help":
-        # We route to a special 'human_help' interrupt state
-        # For simplicity in graph, we can route back to executor but 
-        # rely on the 'interrupt_before' in compilation to catch this.
-        return "human_help_interrupt" 
-    elif status == "done":
-        # Fatal failure
-        return "responder"
-    else:
-        # Auto-retry (status="executing")
-        return "executor"
+    # If there is feedback text and it's not just "yes"/"ok"
+    if feedback and len(feedback) > 3 and "yes" not in feedback.lower():
+        print(f"   ↪ User requested changes: {feedback}")
+        return "sql_planner"
+    
+    print("   ↪ Plan Approved. Proceeding to Execution.")
+    return "sql_executor"
 
-# --- GRAPH BUILDER ---
+# --- 2. Build the Graph ---
 
 workflow = StateGraph(AgentState)
 
-# 1. Add Nodes
-workflow.add_node("planner", planner_node)
+# -- Add Nodes --
+# Phase 1: Business Understanding
+workflow.add_node("kg_planner", kg_planning_node)
+workflow.add_node("kg_executor", kg_execution_node)
+workflow.add_node("context_refiner", context_refining_node)
+
+# Phase 2: Data Analysis
+workflow.add_node("sql_planner", sql_planning_node)
 workflow.add_node("human_review", human_review_node)
-workflow.add_node("executor", executor_node)
-workflow.add_node("error_handler", error_handler_node)
+workflow.add_node("sql_executor", sql_execution_node)
 workflow.add_node("responder", responder_node)
 
-# 2. Add Standard Edges
-workflow.add_edge(START, "planner")
-workflow.add_edge("planner", "human_review")
+# -- Add Edges --
 
-# 3. Add Conditional Edges
+# START -> KG Planner (Default entry point)
+workflow.add_edge(START, "kg_planner")
+
+# KG Planner -> KG Executor
+workflow.add_edge("kg_planner", "kg_executor")
+
+# KG Executor -> Loop or Refine
+workflow.add_conditional_edges(
+    "kg_executor",
+    route_kg_execution,
+    {
+        "kg_executor": "kg_executor",       # Loop back for next step
+        "context_refiner": "context_refiner" # Done, move to synthesis
+    }
+)
+
+# Context Refiner -> SQL Planner
+workflow.add_edge("context_refiner", "sql_planner")
+
+workflow.add_edge("sql_planner", "human_review")
+
+# Human Review -> Conditional (Executor OR Back to Planner)
 workflow.add_conditional_edges(
     "human_review",
-    route_after_review,
+    route_human_review,
     {
-        "planner": "planner",
-        "executor": "executor"
+        "sql_executor": "sql_executor",
+        "sql_planner": "sql_planner"
     }
 )
 
+# SQL Executor -> Loop or Responder
 workflow.add_conditional_edges(
-    "executor",
-    route_executor,
+    "sql_executor",
+    route_sql_execution,
     {
-        "error_handler": "error_handler",
-        "responder": "responder",
-        "executor": "executor"
-    }
-)
-
-workflow.add_conditional_edges(
-    "error_handler",
-    route_error,
-    {
-        "human_help_interrupt": "executor", # Logic: We pause before this, user updates args, we resume
-        "responder": "responder",
-        "executor": "executor"
+        "sql_executor": "sql_executor", 
+        "responder": "responder"
     }
 )
 
 workflow.add_edge("responder", END)
 
-# 4. Compile with Checkpointer and Interrupts
-# We pause AFTER human review to allow user to approve or reject.
-# We pause BEFORE executor if the error handler requested "waiting_help".
-checkpointer = MemorySaver()
+# --- 3. Compile with Checkpointer ---
 
+# Initialize in-memory persistence
+memory = MemorySaver()
+
+# Compile the graph with the checkpointer
 app = workflow.compile(
-    checkpointer=checkpointer,
-    interrupt_after=["human_review"],
-    # We can handle the Error "Human Help" interrupt dynamically in main.py 
-    # or strictly via configuration. For MVP, keeping it simple:
-    interrupt_before=[] 
+    checkpointer=memory, 
+    interrupt_after=["human_review"]
 )

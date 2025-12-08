@@ -1,83 +1,78 @@
 import asyncio
 import uuid
-from agent.graph import app
 from langchain_core.messages import HumanMessage
+from agent.graph import app  # Importing the compiled StateGraph
 
 async def main():
-    # Unique thread ID for state persistence
-    thread_id = str(uuid.uuid4())
-    config = {"configurable": {"thread_id": thread_id}}
+    print("\n🤖 Dual-Brain Agent Initialized.")
+    print("================================")
     
-    print("🤖 SQL Data Analysis Agent Initialized.")
-    print("---------------------------------------")
+    # 1. Get User Question
+    user_input = input("User Query: ")
     
-    # 1. Get Initial Question
-    user_input = input("User: ")
-    
-    # Initial Trigger
+    # 2. Initialize State
     initial_state = {
         "messages": [HumanMessage(content=user_input)],
-        "current_step_index": 0,
+        "phase": "business_analysis", 
+        "status": "planning",
         "retry_count": 0,
         "results": {},
-        "error": None,
-        "user_feedback": None,
-        "plan": None
+        "kg_plan": None,
+        "sql_plan": None,
+        "business_context": None
     }
 
-    # Start the Graph
-    # We use .stream() to see nodes executing in real-time
-    async for event in app.astream(initial_state, config=config, stream_mode="values"):
-        # We can print events if we want debugging, but the nodes print to console already
-        pass
+    # --- FIX START: Define the Thread Configuration ---
+    # The Checkpointer needs a thread_id to know where to save this specific run.
+    thread_id = str(uuid.uuid4())
+    config = {"configurable": {"thread_id": thread_id}}
+    # --- FIX END ---
 
-    # --- THE INTERACTIVE LOOP ---
-    while True:
-        # Check the current state of the graph
-        snapshot = app.get_state(config)
-        
-        # If the graph has finished, break
-        if not snapshot.next:
-            print("\n✅ Process Completed.")
-            break
+    print(f"\n--- 🚀 Starting Workflow (Thread: {thread_id}) ---\n")
 
-        # If we are here, the graph is PAUSED (likely at 'human_review')
-        current_node = snapshot.metadata.get('step', '')
-        # Note: LangGraph metadata formats vary, usually we check snapshot.next
-        
-        # Determine why we paused
-        last_node = list(snapshot.metadata.get("writes", {}).keys())
-        if not last_node:
-            # First run, or paused at review
-            pass
+    # 3. Stream Execution
+    # PASS `config` HERE ⬇️
+    async for event in app.astream(initial_state, config=config):
+        for node_name, state_update in event.items():
             
-        print(f"\n⏸️  Agent Paused. Waiting for input...")
-        user_command = input(">> (Type 'yes' to approve, or provide feedback): ").strip()
-        
-        if user_command.lower() in ["yes", "y", "approve", "ok"]:
-            print("👍 Plan Approved. Resuming execution...")
-            # Resume with NO user_feedback (clearing it ensures route_after_review goes to executor)
-            await app.aupdate_state(config, {"user_feedback": None})
+            # --- PHASE 1 VISUALIZATION ---
+            if node_name == "kg_planner":
+                # Check if kg_plan exists in update before accessing steps
+                if state_update.get('kg_plan'):
+                    steps = len(state_update['kg_plan'].steps)
+                    print(f"📘 [Right Brain] Plan: Explore {steps} concepts.")
             
-            # Continue execution
-            async for event in app.astream(None, config=config, stream_mode="values"):
-                pass
+            elif node_name == "kg_executor":
+                pass 
+
+            elif node_name == "context_refiner":
+                print(f"📘 [Right Brain] Insight Generated.")
+                if 'messages' in state_update and state_update['messages']:
+                    # Print the stylized AIMessage we created
+                    print(f"\n{state_update['messages'][-1].content}\n")
+
+            # --- PHASE 2 VISUALIZATION ---
+            elif node_name == "sql_planner":
+                plan = state_update.get('sql_plan')
+                if plan:
+                    print(f"📙 [Left Brain] SQL Plan: {len(plan.steps)} steps.")
+                    for step in plan.steps:
+                        print(f"   - {step.tool}: {step.description}")
+
+            elif node_name == "sql_executor":
+                results = state_update.get('results')
+                print(f"\n📊 [Left Brain] Final Results Available.")
                 
-        elif user_command.lower() in ["exit", "quit"]:
-            print("👋 Exiting.")
-            break
-            
-        else:
-            # User provided feedback (Rejection or Help)
-            print("🔄 Feedback received. Replanning/Adjusting...")
-            
-            # Determine if this was "Help" for an error or "Feedback" for a plan
-            # (Logic simplified: we just inject user_feedback string)
-            await app.aupdate_state(config, {"user_feedback": user_command})
-            
-            # Resume execution (Graph will route back to Planner or Executor based on logic)
-            async for event in app.astream(None, config=config, stream_mode="values"):
-                pass
+                if results:
+                    last_step = list(results.keys())[-1]
+                    data = results[last_step]
+                    if isinstance(data, list) and len(data) > 0:
+                        print(f"   Top Result: {data[0]}")
+                        print(f"   (... and {len(data)-1} more rows)")
+                    else:
+                        print(f"   Result: {data}")
+
+    print("\n✅ Process Completed.")
 
 if __name__ == "__main__":
     asyncio.run(main())

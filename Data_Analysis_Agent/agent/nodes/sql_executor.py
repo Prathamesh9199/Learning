@@ -41,13 +41,13 @@ def resolve_dependencies(args: Dict[str, Any], results: Dict[str, Any]) -> Dict[
                         
     return resolved_args
 
-def executor_node(state: AgentState) -> dict:
+def sql_execution_node(state: AgentState) -> dict:
     """
     Executes the tool for the current step in the plan.
     """
     print("\n⚙️  Node: Executor")
-    
-    plan = state["plan"]
+
+    plan = state["sql_plan"]
     current_index = state["current_step_index"]
     results = state.get("results", {})
     
@@ -61,7 +61,7 @@ def executor_node(state: AgentState) -> dict:
     print(f"   ▶ Executing Step {current_step.step_id}: {current_step.description}")
     
     # 2. Resolve Tool and Arguments
-    tool_name = current_step.tool_name
+    tool_name = current_step.tool
     tool_func = TOOLS_MAP.get(tool_name)
     
     if not tool_func:
@@ -69,13 +69,22 @@ def executor_node(state: AgentState) -> dict:
         return {"error": error_msg, "status": "failed"}
 
     # 3. Handle Dependencies (Variable Linking)
-    raw_args = current_step.tool_arguments
+    raw_args = current_step.args
     final_args = resolve_dependencies(raw_args, results)
+
+    # --- ADD THIS DEBUG BLOCK ---
+    print(f"\n🔍 [DEBUG] Executing: {tool_name}")
+    print(f"   Input Args: {final_args}") 
+    # ----------------------------
     
     # 4. Execute Tool
     try:
         # We pass arguments as kwargs
         output = tool_func(**final_args)
+
+        # --- ADD THIS DEBUG BLOCK ---
+        print(f"   Output Rows: {len(output) if isinstance(output, list) else 'Not a list'}")
+        # ----------------------------
         
         # 5. Check for "Soft Errors" (Tool returned an error string)
         if isinstance(output, str) and ("Error" in output or "failed" in output.lower()):
