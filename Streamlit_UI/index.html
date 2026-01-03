@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sherlock SQL Agent Architecture</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --line-color: #666;
+            --primary-color: #2c3e50;
+            --security-color: #e74c3c;
+            --reasoning-color: #f39c12;
+            --execution-color: #27ae60;
+            --presentation-color: #3498db;
+            --diagnostic-color: #9b59b6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        /* Layout Container */
+        .flowchart-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            align-items: center;
+            position: relative;
+            padding-bottom: 50px;
+            min-width: 1200px; /* Ensure space for wide phases */
+        }
+
+        /* Phase Styling */
+        .phase {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.5);
+            width: 90%;
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .phase-label {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: var(--bg-color);
+            padding: 0 10px;
+            font-weight: bold;
+            color: #777;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+
+        /* Node Styling */
+        .node {
+            background: var(--card-bg);
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 15px;
+            width: 200px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 2;
+            transition: transform 0.2s;
+            font-size: 0.9em;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .node:hover {
+            transform: scale(1.05);
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .node small {
+            display: block;
+            margin-top: 5px;
+            font-weight: normal;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        /* Specific Node Colors */
+        .node.security { border-color: var(--security-color); color: var(--security-color); }
+        .node.reasoning { border-color: var(--reasoning-color); color: var(--reasoning-color); }
+        .node.execution { border-color: var(--execution-color); color: var(--execution-color); }
+        .node.diagnostic { border-color: var(--diagnostic-color); color: var(--diagnostic-color); }
+        .node.interrupt { border-style: dashed; background-color: #fff8e1; }
+
+        /* SVG Overlay for Lines */
+        #svg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Let clicks pass through to nodes */
+            z-index: 1;
+        }
+
+        path {
+            fill: none;
+            stroke: var(--line-color);
+            stroke-width: 2px;
+            marker-end: url(#arrowhead);
+        }
+
+        /* Start/End Circles */
+        .circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            z-index: 2;
+        }
+        .start { background: #2c3e50; }
+        .end { background: #95a5a6; }
+
+    </style>
+</head>
+<body>
+
+    <h1>Sherlock SQL Agent Flowchart</h1>
+
+    <div class="flowchart-container" id="container">
+        
+        <svg id="svg-overlay">
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+                </marker>
+            </defs>
+            </svg>
+
+        <div class="circle start" id="START">START</div>
+
+        <div class="phase">
+            <div class="phase-label">Phase 0: Security & Context</div>
+            <div class="node security" id="context_loader">context_loader_node<small>Load User Role</small></div>
+            <div class="node security" id="intent_identifier">intent_identifier_node<small>Check Scope</small></div>
+            <div class="node security" id="refusal_responder">refusal_responder_node<small>Reject Invalid</small></div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-label">Phase 1: Optimization</div>
+            <div class="node" id="cache_lookup">cache_lookup_node<small>Check History</small></div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-label">Phase 2: Reasoning</div>
+            <div class="node reasoning" id="agent_planner">agent_planner_node<small>Strategic Brain</small></div>
+        </div>
+
+        <div style="display:flex; gap:20px; width:90%; justify-content:center;">
+            
+            <div class="phase" style="width:45%">
+                <div class="phase-label">Phase 3: Socratic Helpers</div>
+                <div class="node reasoning" id="ambiguity_cont">handle_ambiguity_cont<small>Stats Check</small></div>
+                <div class="node reasoning" id="ambiguity_cat">handle_ambiguity_cat<small>Distincts Check</small></div>
+                <div class="node interrupt" id="human_clarify">human_clarification<small>User Input</small></div>
+            </div>
+
+            <div class="phase" style="width:45%">
+                <div class="phase-label">Phase 4: Diagnostic Engine</div>
+                <div class="node diagnostic" id="causal_discovery">causal_discovery_node<small>Query Knowledge Graph</small></div>
+                <div class="node diagnostic interrupt" id="investigation_approval">investigation_approval<small>Confirm Plan</small></div>
+                <div class="node diagnostic" id="result_analyzer">result_analyzer_node<small>Scientific Check</small></div>
+            </div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-label">Phase 5: Execution</div>
+            <div class="node execution" id="sp_executor">sp_executor_node<small>Run SQL SP</small></div>
+            <div class="node execution" id="error_recovery">error_recovery_node<small>Retry/Fail</small></div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-label">Phase 6: Presentation</div>
+            <div class="node presentation" id="data_negotiator">data_negotiator_node<small>Check Volume</small></div>
+            <div class="node presentation interrupt" id="human_negotiation">human_negotiation<small>Group vs Truncate</small></div>
+            <div class="node presentation" id="hard_truncate">hard_truncate_node<small>Top 20 Rows</small></div>
+            <div class="node presentation" id="response_synthesizer">response_synthesizer<small>Format Answer</small></div>
+        </div>
+
+        <div class="phase">
+            <div class="phase-label">Phase 7: Finalization</div>
+            <div class="node" id="feedback_logger">feedback_logger_node<small>Update Cache</small></div>
+        </div>
+
+        <div class="circle end" id="END">END</div>
+
+    </div>
+
+    <script>
+        // --- CONFIGURATION: Define Connections ---
+        const connections = [
+            { from: "START", to: "context_loader" },
+            { from: "context_loader", to: "intent_identifier" },
+            
+            // Intent Routing
+            { from: "intent_identifier", to: "cache_lookup", label: "Valid" },
+            { from: "intent_identifier", to: "refusal_responder", label: "Invalid" },
+            { from: "refusal_responder", to: "END" },
+
+            // Cache Routing
+            { from: "cache_lookup", to: "sp_executor", label: "Hit" },
+            { from: "cache_lookup", to: "agent_planner", label: "Miss" },
+
+            // Planner Routing
+            { from: "agent_planner", to: "ambiguity_cont", label: "Get Stats" },
+            { from: "agent_planner", to: "ambiguity_cat", label: "Get Filter" },
+            { from: "agent_planner", to: "causal_discovery", label: "Query KG" },
+            { from: "agent_planner", to: "sp_executor", label: "Execute" },
+            { from: "agent_planner", to: "result_analyzer", label: "Analyze" },
+            { from: "agent_planner", to: "response_synthesizer", label: "Finalize" },
+
+            // Socratic Loop
+            { from: "ambiguity_cont", to: "human_clarify" },
+            { from: "ambiguity_cat", to: "human_clarify" },
+            { from: "human_clarify", to: "agent_planner" },
+
+            // Diagnostic Loop
+            { from: "causal_discovery", to: "investigation_approval" },
+            { from: "investigation_approval", to: "agent_planner" },
+            { from: "result_analyzer", to: "agent_planner" },
+
+            // Execution Loop
+            { from: "sp_executor", to: "data_negotiator" },
+            { from: "data_negotiator", to: "error_recovery", label: "Error" },
+            { from: "error_recovery", to: "sp_executor", label: "Retry" },
+            { from: "error_recovery", to: "agent_planner", label: "Logic Fail" },
+
+            // Negotiation Loop
+            { from: "data_negotiator", to: "result_analyzer", label: "Diagnostic" },
+            { from: "data_negotiator", to: "human_negotiation", label: "Huge Data" },
+            { from: "data_negotiator", to: "response_synthesizer", label: "OK Data" },
+            
+            { from: "human_negotiation", to: "agent_planner", label: "Group By" },
+            { from: "human_negotiation", to: "hard_truncate", label: "Preview" },
+            { from: "hard_truncate", to: "response_synthesizer" },
+
+            // Finalization
+            { from: "response_synthesizer", to: "feedback_logger" },
+            { from: "feedback_logger", to: "END" }
+        ];
+
+        // --- DRAWING ENGINE ---
+        function drawLines() {
+            const svg = document.getElementById('svg-overlay');
+            const container = document.getElementById('container');
+            svg.innerHTML = `
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+                </marker>
+            </defs>`; // Reset SVG
+
+            const containerRect = container.getBoundingClientRect();
+
+            connections.forEach(conn => {
+                const startEl = document.getElementById(conn.from);
+                const endEl = document.getElementById(conn.to);
+
+                if (!startEl || !endEl) return;
+
+                const startRect = startEl.getBoundingClientRect();
+                const endRect = endEl.getBoundingClientRect();
+
+                // Calculate positions relative to the container
+                const x1 = startRect.left + startRect.width / 2 - containerRect.left;
+                const y1 = startRect.bottom - containerRect.top;
+                const x2 = endRect.left + endRect.width / 2 - containerRect.left;
+                const y2 = endRect.top - containerRect.top;
+
+                // Create Bezier Curve
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                
+                // Logic for "loop back" lines vs standard lines
+                const isLoopBack = y2 < y1;
+                let d = "";
+
+                if (isLoopBack) {
+                    // Draw a wide curve around the side for loopbacks
+                    const curveOffset = 150;
+                    d = `M ${x1} ${y1} 
+                         C ${x1 + curveOffset} ${y1 + 50}, 
+                           ${x2 + curveOffset} ${y2 - 50}, 
+                           ${x2 + (endRect.width/2)} ${y2 + (endRect.height/2)}`;
+                    
+                    // Actually, connect to the side/top for loopbacks looks better
+                    // Simplified S-Curve logic for this demo
+                     d = `M ${x1} ${y1 - (startRect.height/2)} 
+                          Q ${x1 + 300} ${(y1 + y2)/2} 
+                            ${x2} ${y2}`;
+                } else {
+                    // Standard Top-Down S-Curve
+                    d = `M ${x1} ${y1} C ${x1} ${y1 + 50}, ${x2} ${y2 - 50}, ${x2} ${y2}`;
+                }
+                
+                path.setAttribute("d", d);
+                svg.appendChild(path);
+            });
+        }
+
+        // Redraw on load and resize
+        window.addEventListener('load', drawLines);
+        window.addEventListener('resize', drawLines);
+    </script>
+</body>
+</html>
